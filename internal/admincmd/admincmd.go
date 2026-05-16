@@ -1,4 +1,10 @@
-package main
+// Package admincmd 提供 admin 子命令实现，作为运维工具集合：
+// 列出管理员、重置 2FA、重置密码。所有命令共享调用方初始化好的
+// models.DB，无需重复 config.Load / InitDB。
+//
+// 入口由 cmd/server/main.go 在检测到 "admin" 子命令时调用 Run(args)，
+// 容器只需要 dujiao-api 一个二进制即可执行所有运维操作。
+package admincmd
 
 import (
 	"bufio"
@@ -9,7 +15,6 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/dujiao-next/internal/config"
 	"github.com/dujiao-next/internal/constants"
 	"github.com/dujiao-next/internal/models"
 	"github.com/dujiao-next/internal/repository"
@@ -21,59 +26,53 @@ import (
 
 const minPasswordLength = 8
 
-func usage() {
-	fmt.Fprintln(os.Stderr, `admin-tool: 后台管理员运维工具
+// Usage 打印 admin 子命令帮助文档。
+func Usage() {
+	fmt.Fprintln(os.Stderr, `admin 子命令: 后台管理员运维工具
 
 用法:
-  admin-tool list-admins                            列出所有管理员
-  admin-tool reset-2fa --username <name>            重置指定管理员的 2FA
-  admin-tool reset-password --username <name> [--password <new>]
-                                                     重置管理员密码（超管忘记密码恢复用）
-                                                     不传 --password 时从 stdin 隐藏读入两次确认
-
-读取的配置文件与 server 相同（默认 config.yml）。`)
+  dujiao-api admin list-admins                            列出所有管理员
+  dujiao-api admin reset-2fa --username <name>            重置指定管理员的 2FA
+  dujiao-api admin reset-password --username <name> [--password <new>]
+                                                          重置管理员密码（超管忘记密码恢复用）
+                                                          不传 --password 时从 stdin 隐藏读入两次确认`)
 }
 
-func main() {
-	if len(os.Args) < 2 {
-		usage()
+// Run 分发 admin 子命令。args 是去掉 "admin" 之后的参数（os.Args[2:]）。
+// caller 需先完成 config.Load + models.InitDB。
+//
+// 失败时直接 os.Exit(1)，与原 admin-tool 二进制行为保持一致；这是 CLI 运维
+// 工具的约定（脚本可靠 exit code 判定），不抛出 error 给调用方。
+func Run(args []string) {
+	if len(args) < 1 {
+		Usage()
 		os.Exit(1)
 	}
-	cmd := os.Args[1]
-
-	cfg := config.Load()
-	if err := models.InitDB(cfg.Database.Driver, cfg.Database.DSN, models.DBPoolConfig{
-		MaxOpenConns:           cfg.Database.Pool.MaxOpenConns,
-		MaxIdleConns:           cfg.Database.Pool.MaxIdleConns,
-		ConnMaxLifetimeSeconds: cfg.Database.Pool.ConnMaxLifetimeSeconds,
-		ConnMaxIdleTimeSeconds: cfg.Database.Pool.ConnMaxIdleTimeSeconds,
-	}); err != nil {
-		fmt.Fprintf(os.Stderr, "init db: %v\n", err)
-		os.Exit(1)
-	}
+	cmd := args[0]
+	rest := args[1:]
 
 	switch cmd {
 	case "list-admins":
 		listAdmins()
 	case "reset-2fa":
-		username := parseStringFlag(os.Args[2:], "username")
+		username := parseStringFlag(rest, "username")
 		if username == "" {
 			fmt.Fprintln(os.Stderr, "missing --username")
-			usage()
+			Usage()
 			os.Exit(1)
 		}
 		resetTOTP(username)
 	case "reset-password":
-		username := parseStringFlag(os.Args[2:], "username")
-		password := parseStringFlag(os.Args[2:], "password")
+		username := parseStringFlag(rest, "username")
+		password := parseStringFlag(rest, "password")
 		if username == "" {
 			fmt.Fprintln(os.Stderr, "missing --username")
-			usage()
+			Usage()
 			os.Exit(1)
 		}
 		resetPassword(username, password)
 	default:
-		usage()
+		Usage()
 		os.Exit(1)
 	}
 }
@@ -142,7 +141,6 @@ func resetTOTP(username string) {
 		ClientIP:  "cli",
 		UserAgent: "admin-tool",
 		RequestID: rid,
-		// OperatorID: nil — CLI 操作没有操作者管理员
 	})
 	fmt.Printf("OK: 2FA reset for admin id=%d username=%s at %s\n", admin.ID, admin.Username, time.Now().Format(time.RFC3339))
 }
