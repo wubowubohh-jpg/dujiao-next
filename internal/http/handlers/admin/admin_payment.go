@@ -212,11 +212,7 @@ func buildAdminPaymentFilter(c *gin.Context, page, pageSize int) (repository.Pay
 		return repository.PaymentListFilter{}, err
 	}
 
-	createdFrom, err := shared.ParseTimeNullable(strings.TrimSpace(c.Query("created_from")))
-	if err != nil {
-		return repository.PaymentListFilter{}, err
-	}
-	createdTo, err := shared.ParseTimeNullable(strings.TrimSpace(c.Query("created_to")))
+	createdFrom, createdTo, err := shared.ParseQueryTimeRange(c, "created_from", "created_to")
 	if err != nil {
 		return repository.PaymentListFilter{}, err
 	}

@@ -39,15 +39,8 @@ func (h *Handler) AdminListOrders(c *gin.Context) {
 	userKeyword := strings.TrimSpace(c.Query("user_keyword"))
 	orderNo := strings.TrimSpace(c.Query("order_no"))
 	guestEmail := strings.TrimSpace(c.Query("guest_email"))
-	createdFromRaw := strings.TrimSpace(c.Query("created_from"))
-	createdToRaw := strings.TrimSpace(c.Query("created_to"))
 
-	createdFrom, err := shared.ParseTimeNullable(createdFromRaw)
-	if err != nil {
-		shared.RespondError(c, response.CodeBadRequest, "error.bad_request", err)
-		return
-	}
-	createdTo, err := shared.ParseTimeNullable(createdToRaw)
+	createdFrom, createdTo, err := shared.ParseQueryTimeRange(c, "created_from", "created_to")
 	if err != nil {
 		shared.RespondError(c, response.CodeBadRequest, "error.bad_request", err)
 		return

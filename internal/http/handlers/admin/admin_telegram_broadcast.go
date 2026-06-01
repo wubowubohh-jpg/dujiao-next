@@ -91,12 +91,7 @@ func (h *Handler) GetTelegramBroadcast(c *gin.Context) {
 func (h *Handler) ListTelegramBroadcastUsers(c *gin.Context) {
 	page, pageSize := shared.ParsePagination(c)
 
-	createdFrom, err := shared.ParseTimeNullable(strings.TrimSpace(c.Query("created_from")))
-	if err != nil {
-		shared.RespondError(c, response.CodeBadRequest, "error.bad_request", err)
-		return
-	}
-	createdTo, err := shared.ParseTimeNullable(strings.TrimSpace(c.Query("created_to")))
+	createdFrom, createdTo, err := shared.ParseQueryTimeRange(c, "created_from", "created_to")
 	if err != nil {
 		shared.RespondError(c, response.CodeBadRequest, "error.bad_request", err)
 		return

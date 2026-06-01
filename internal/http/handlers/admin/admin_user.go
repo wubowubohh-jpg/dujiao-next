@@ -90,27 +90,13 @@ func (h *Handler) GetAdminUsers(c *gin.Context) {
 	}
 	keyword := strings.TrimSpace(c.Query("keyword"))
 	status := strings.TrimSpace(c.Query("status"))
-	createdFromRaw := strings.TrimSpace(c.Query("created_from"))
-	createdToRaw := strings.TrimSpace(c.Query("created_to"))
-	lastLoginFromRaw := strings.TrimSpace(c.Query("last_login_from"))
-	lastLoginToRaw := strings.TrimSpace(c.Query("last_login_to"))
 
-	createdFrom, err := shared.ParseTimeNullable(createdFromRaw)
+	createdFrom, createdTo, err := shared.ParseQueryTimeRange(c, "created_from", "created_to")
 	if err != nil {
 		shared.RespondError(c, response.CodeBadRequest, "error.bad_request", err)
 		return
 	}
-	createdTo, err := shared.ParseTimeNullable(createdToRaw)
-	if err != nil {
-		shared.RespondError(c, response.CodeBadRequest, "error.bad_request", err)
-		return
-	}
-	lastLoginFrom, err := shared.ParseTimeNullable(lastLoginFromRaw)
-	if err != nil {
-		shared.RespondError(c, response.CodeBadRequest, "error.bad_request", err)
-		return
-	}
-	lastLoginTo, err := shared.ParseTimeNullable(lastLoginToRaw)
+	lastLoginFrom, lastLoginTo, err := shared.ParseQueryTimeRange(c, "last_login_from", "last_login_to")
 	if err != nil {
 		shared.RespondError(c, response.CodeBadRequest, "error.bad_request", err)
 		return

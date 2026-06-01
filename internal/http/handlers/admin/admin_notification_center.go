@@ -61,8 +61,6 @@ func (h *Handler) ListNotificationLogs(c *gin.Context) {
 	status := strings.ToLower(strings.TrimSpace(c.Query("status")))
 	eventType := strings.ToLower(strings.TrimSpace(c.Query("event_type")))
 	isTestRaw := strings.TrimSpace(c.Query("is_test"))
-	createdFromRaw := strings.TrimSpace(c.Query("created_from"))
-	createdToRaw := strings.TrimSpace(c.Query("created_to"))
 
 	var isTest *bool
 	if isTestRaw != "" {
@@ -74,12 +72,7 @@ func (h *Handler) ListNotificationLogs(c *gin.Context) {
 		isTest = &parsed
 	}
 
-	createdFrom, err := shared.ParseTimeNullable(createdFromRaw)
-	if err != nil {
-		shared.RespondError(c, response.CodeBadRequest, "error.bad_request", err)
-		return
-	}
-	createdTo, err := shared.ParseTimeNullable(createdToRaw)
+	createdFrom, createdTo, err := shared.ParseQueryTimeRange(c, "created_from", "created_to")
 	if err != nil {
 		shared.RespondError(c, response.CodeBadRequest, "error.bad_request", err)
 		return

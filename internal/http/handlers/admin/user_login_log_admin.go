@@ -19,8 +19,6 @@ func (h *Handler) GetUserLoginLogs(c *gin.Context) {
 	status := strings.TrimSpace(c.Query("status"))
 	failReason := strings.TrimSpace(c.Query("fail_reason"))
 	clientIP := strings.TrimSpace(c.Query("client_ip"))
-	createdFromRaw := strings.TrimSpace(c.Query("created_from"))
-	createdToRaw := strings.TrimSpace(c.Query("created_to"))
 
 	var userID uint
 	if userIDRaw != "" {
@@ -32,12 +30,7 @@ func (h *Handler) GetUserLoginLogs(c *gin.Context) {
 		userID = parsedUserID
 	}
 
-	createdFrom, err := shared.ParseTimeNullable(createdFromRaw)
-	if err != nil {
-		shared.RespondError(c, response.CodeBadRequest, "error.bad_request", err)
-		return
-	}
-	createdTo, err := shared.ParseTimeNullable(createdToRaw)
+	createdFrom, createdTo, err := shared.ParseQueryTimeRange(c, "created_from", "created_to")
 	if err != nil {
 		shared.RespondError(c, response.CodeBadRequest, "error.bad_request", err)
 		return

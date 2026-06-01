@@ -107,22 +107,12 @@ func (h *Handler) GetAdminWalletRecharges(c *gin.Context) {
 		shared.RespondError(c, response.CodeBadRequest, "error.bad_request", err)
 		return
 	}
-	createdFrom, err := shared.ParseTimeNullable(strings.TrimSpace(c.Query("created_from")))
+	createdFrom, createdTo, err := shared.ParseQueryTimeRange(c, "created_from", "created_to")
 	if err != nil {
 		shared.RespondError(c, response.CodeBadRequest, "error.bad_request", err)
 		return
 	}
-	createdTo, err := shared.ParseTimeNullable(strings.TrimSpace(c.Query("created_to")))
-	if err != nil {
-		shared.RespondError(c, response.CodeBadRequest, "error.bad_request", err)
-		return
-	}
-	paidFrom, err := shared.ParseTimeNullable(strings.TrimSpace(c.Query("paid_from")))
-	if err != nil {
-		shared.RespondError(c, response.CodeBadRequest, "error.bad_request", err)
-		return
-	}
-	paidTo, err := shared.ParseTimeNullable(strings.TrimSpace(c.Query("paid_to")))
+	paidFrom, paidTo, err := shared.ParseQueryTimeRange(c, "paid_from", "paid_to")
 	if err != nil {
 		shared.RespondError(c, response.CodeBadRequest, "error.bad_request", err)
 		return

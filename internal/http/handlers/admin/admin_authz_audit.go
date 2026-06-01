@@ -20,8 +20,6 @@ func (h *Handler) ListAuthzAuditLogs(c *gin.Context) {
 	role := strings.TrimSpace(c.Query("role"))
 	object := strings.TrimSpace(c.Query("object"))
 	method := strings.TrimSpace(c.Query("method"))
-	createdFromRaw := strings.TrimSpace(c.Query("created_from"))
-	createdToRaw := strings.TrimSpace(c.Query("created_to"))
 
 	var operatorAdminID uint
 	if operatorAdminIDRaw != "" {
@@ -43,12 +41,7 @@ func (h *Handler) ListAuthzAuditLogs(c *gin.Context) {
 		targetAdminID = parsedTargetAdminID
 	}
 
-	createdFrom, err := shared.ParseTimeNullable(createdFromRaw)
-	if err != nil {
-		shared.RespondError(c, response.CodeBadRequest, "error.bad_request", err)
-		return
-	}
-	createdTo, err := shared.ParseTimeNullable(createdToRaw)
+	createdFrom, createdTo, err := shared.ParseQueryTimeRange(c, "created_from", "created_to")
 	if err != nil {
 		shared.RespondError(c, response.CodeBadRequest, "error.bad_request", err)
 		return
