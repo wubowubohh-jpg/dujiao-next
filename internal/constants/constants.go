@@ -40,13 +40,14 @@ const (
 
 // 支付提供方常量
 const (
-	PaymentProviderOfficial = "official"
-	PaymentProviderEpay     = "epay"
-	PaymentProviderEpusdt   = "epusdt"
-	PaymentProviderBepusdt  = "bepusdt"
-	PaymentProviderOkpay    = "okpay"
-	PaymentProviderTokenpay = "tokenpay"
-	PaymentProviderWallet   = "wallet"
+	PaymentProviderOfficial  = "official"
+	PaymentProviderEpay      = "epay"
+	PaymentProviderEpusdt    = "epusdt"
+	PaymentProviderBepusdt   = "bepusdt"
+	PaymentProviderDujiaoPay = "dujiaopay"
+	PaymentProviderOkpay     = "okpay"
+	PaymentProviderTokenpay  = "tokenpay"
+	PaymentProviderWallet    = "wallet"
 )
 
 // 支付渠道类型常量
@@ -443,12 +444,14 @@ const (
 
 	SettingKeyHomeAnnouncement   = "home_announcement"
 	SettingFieldPaymentCallback  = "payment_callback"
+	SettingFieldDujiaoPayWebhook = "dujiaopay_webhook"
 	SettingFieldPaypalWebhook    = "paypal_webhook"
 	SettingFieldStripeWebhook    = "stripe_webhook"
 	SettingFieldUpstreamCallback = "upstream_callback"
 
 	// 默认回调路由路径
 	DefaultPaymentCallbackPath  = "/api/v1/payments/callback"
+	DefaultDujiaoPayWebhookPath = "/api/v1/payments/webhook/dujiaopay"
 	DefaultPaypalWebhookPath    = "/api/v1/payments/webhook/paypal"
 	DefaultStripeWebhookPath    = "/api/v1/payments/webhook/stripe"
 	DefaultUpstreamCallbackPath = "/api/v1/upstream/callback"
