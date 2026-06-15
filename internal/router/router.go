@@ -83,8 +83,11 @@ func SetupRouter(cfg *config.Config, c *provider.Container) *gin.Engine {
 	// API 路由组
 	apiV1 := r.Group("/api/v1")
 	{
+		storefront := apiV1.Group("")
+		storefront.Use(ResellerTenantMiddleware(c.ResellerDomainResolver))
+
 		// 公开接口
-		public := apiV1.Group("/public")
+		public := storefront.Group("/public")
 		{
 			public.GET("/config", publicHandler.GetConfig)
 			public.GET("/products", publicHandler.GetProducts)
@@ -99,7 +102,7 @@ func SetupRouter(cfg *config.Config, c *provider.Container) *gin.Engine {
 		}
 
 		// 游客接口
-		guest := apiV1.Group("/guest")
+		guest := storefront.Group("/guest")
 		{
 			guest.POST("/orders", publicHandler.CreateGuestOrder)
 			guest.POST("/orders/create-and-pay", publicHandler.CreateGuestOrderAndPay)
@@ -113,7 +116,7 @@ func SetupRouter(cfg *config.Config, c *provider.Container) *gin.Engine {
 		}
 
 		// 用户认证接口
-		auth := apiV1.Group("/auth")
+		auth := storefront.Group("/auth")
 		{
 			auth.POST("/send-verify-code", publicHandler.SendUserVerifyCode)
 			auth.POST("/register", publicHandler.UserRegister)
@@ -127,7 +130,7 @@ func SetupRouter(cfg *config.Config, c *provider.Container) *gin.Engine {
 		}
 
 		// 用户接口（需鉴权）
-		user := apiV1.Group("")
+		user := storefront.Group("")
 		user.Use(UserJWTAuthMiddleware(cfg.UserJWT.SecretKey, c.UserRepo))
 		{
 			user.GET("/me", publicHandler.GetCurrentUser)

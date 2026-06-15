@@ -19,7 +19,6 @@ import (
 )
 
 const (
-	publicConfigCacheKey = "public:config"
 	publicConfigCacheTTL = 60 * time.Second
 	publicLowStockLimit  = 5
 )
@@ -283,8 +282,11 @@ func (h *Handler) GetConfig(c *gin.Context) {
 		"scripts": make([]interface{}, 0),
 	}
 
+	tenant, _ := service.TenantFromContext(c.Request.Context())
+	cacheKey := cache.PublicConfigCacheKey(tenant.ResellerID)
+
 	var cached map[string]interface{}
-	if hit, err := cache.GetJSON(c.Request.Context(), publicConfigCacheKey, &cached); err == nil && hit {
+	if hit, err := cache.GetJSON(c.Request.Context(), cacheKey, &cached); err == nil && hit {
 		cached["server_time"] = time.Now().UnixMilli()
 		cached["app_version"] = version.Version
 		response.Success(c, cached)
@@ -377,7 +379,7 @@ func (h *Handler) GetConfig(c *gin.Context) {
 		data["announcement"] = announcement
 	}
 
-	_ = cache.SetJSON(c.Request.Context(), publicConfigCacheKey, data, publicConfigCacheTTL)
+	_ = cache.SetJSON(c.Request.Context(), cacheKey, data, publicConfigCacheTTL)
 	data["server_time"] = time.Now().UnixMilli()
 	data["app_version"] = version.Version
 	response.Success(c, data)

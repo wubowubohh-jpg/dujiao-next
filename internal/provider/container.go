@@ -48,6 +48,7 @@ type Container struct {
 	AdminLoginLogRepo      repository.AdminLoginLogRepository
 	DashboardRepo          repository.DashboardRepository
 	AffiliateRepo          repository.AffiliateRepository
+	ResellerRepo           repository.ResellerRepository
 	ApiCredentialRepo      repository.ApiCredentialRepository
 	SiteConnectionRepo     repository.SiteConnectionRepository
 	ProductMappingRepo     repository.ProductMappingRepository
@@ -94,6 +95,7 @@ type Container struct {
 	DashboardService          *service.DashboardService
 	NotificationService       *service.NotificationService
 	AffiliateService          *service.AffiliateService
+	ResellerDomainResolver    *service.ResellerDomainResolver
 	ApiCredentialService      *service.ApiCredentialService
 	SiteConnectionService     *service.SiteConnectionService
 	ProductMappingService     *service.ProductMappingService
@@ -194,6 +196,7 @@ func (c *Container) initRepositories() {
 	c.AdminLoginLogRepo = repository.NewAdminLoginLogRepository(db)
 	c.DashboardRepo = repository.NewDashboardRepository(db)
 	c.AffiliateRepo = repository.NewAffiliateRepository(db)
+	c.ResellerRepo = repository.NewResellerRepository(db)
 	c.ApiCredentialRepo = repository.NewApiCredentialRepository(db)
 	c.SiteConnectionRepo = repository.NewSiteConnectionRepository(db)
 	c.ProductMappingRepo = repository.NewProductMappingRepository(db)
@@ -222,6 +225,7 @@ func (c *Container) initServices() {
 	}
 
 	c.SettingService = service.NewSettingService(c.SettingRepo, c.Config.Order)
+	c.ResellerDomainResolver = service.NewResellerDomainResolver(c.ResellerRepo, c.Config.Reseller)
 	c.ComplianceService = service.NewComplianceService(c.SettingRepo)
 	smtpSetting, err := c.SettingService.GetSMTPSetting(c.Config.Email)
 	if err != nil {
