@@ -16,6 +16,9 @@ import (
 const (
 	resellerWithdrawActionReject = "reject"
 	resellerWithdrawActionPay    = "pay"
+
+	ResellerWithdrawDisabledReasonProfileInactive       = "profile_inactive"
+	ResellerWithdrawDisabledReasonSettlementUnavailable = "settlement_unavailable"
 )
 
 type ResellerAccountingOptions struct {
@@ -65,9 +68,11 @@ type ResellerAdminWithdrawListFilter struct {
 }
 
 type ResellerUserFinanceDashboard struct {
-	Opened   bool
-	Profile  *models.ResellerProfile
-	Balances []models.ResellerBalanceAccount
+	Opened                 bool
+	Profile                *models.ResellerProfile
+	Balances               []models.ResellerBalanceAccount
+	WithdrawEnabled        bool
+	WithdrawDisabledReason string
 }
 
 type ResellerUserLedgerListFilter struct {
@@ -128,6 +133,19 @@ func requireActiveResellerProfile(profile *models.ResellerProfile) error {
 	return nil
 }
 
+func resellerWithdrawAvailability(profile *models.ResellerProfile) (bool, string) {
+	if profile == nil {
+		return false, ""
+	}
+	if profile.Status != models.ResellerProfileStatusActive {
+		return false, ResellerWithdrawDisabledReasonProfileInactive
+	}
+	if profile.SettlementStatus != "" && profile.SettlementStatus != models.ResellerSettlementStatusNormal {
+		return false, ResellerWithdrawDisabledReasonSettlementUnavailable
+	}
+	return true, ""
+}
+
 func (s *ResellerAccountingService) GetUserFinanceDashboard(userID uint) (ResellerUserFinanceDashboard, error) {
 	profile, err := s.getResellerProfileByUserID(userID)
 	if errors.Is(err, ErrResellerNotOpened) {
@@ -144,7 +162,14 @@ func (s *ResellerAccountingService) GetUserFinanceDashboard(userID uint) (Resell
 	if err != nil {
 		return ResellerUserFinanceDashboard{}, err
 	}
-	return ResellerUserFinanceDashboard{Opened: true, Profile: profile, Balances: balances}, nil
+	withdrawEnabled, withdrawDisabledReason := resellerWithdrawAvailability(profile)
+	return ResellerUserFinanceDashboard{
+		Opened:                 true,
+		Profile:                profile,
+		Balances:               balances,
+		WithdrawEnabled:        withdrawEnabled,
+		WithdrawDisabledReason: withdrawDisabledReason,
+	}, nil
 }
 
 func (s *ResellerAccountingService) ListUserBalanceAccounts(userID uint, filter ResellerUserBalanceAccountListFilter) ([]models.ResellerBalanceAccount, int64, error) {
@@ -676,11 +701,7 @@ func (s *ResellerAccountingService) refreshBalanceAccountTx(repo repository.Rese
 	if err != nil {
 		return err
 	}
-	withdrawn, err := repo.SumLedgerAmount(resellerID, currency, []string{models.ResellerLedgerStatusWithdrawn})
-	if err != nil {
-		return err
-	}
-	net := available.Sub(withdrawn).Round(2)
+	net := available.Round(2)
 	negative := decimal.Zero
 	if net.LessThan(decimal.Zero) {
 		negative = net.Abs().Round(2)

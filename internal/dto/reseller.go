@@ -48,9 +48,11 @@ type ResellerWithdrawResp struct {
 }
 
 type ResellerDashboardResp struct {
-	Opened   bool                        `json:"opened"`
-	Profile  *ResellerProfileSummaryResp `json:"profile,omitempty"`
-	Balances []ResellerBalanceResp       `json:"balances,omitempty"`
+	Opened                 bool                        `json:"opened"`
+	Profile                *ResellerProfileSummaryResp `json:"profile,omitempty"`
+	Balances               []ResellerBalanceResp       `json:"balances,omitempty"`
+	WithdrawEnabled        bool                        `json:"withdraw_enabled"`
+	WithdrawDisabledReason string                      `json:"withdraw_disabled_reason,omitempty"`
 }
 
 func NewResellerProfileSummaryResp(profile *models.ResellerProfile) *ResellerProfileSummaryResp {
@@ -138,13 +140,15 @@ func NewResellerWithdrawRespList(rows []models.ResellerWithdrawRequest) []Resell
 	return result
 }
 
-func NewResellerDashboardResp(opened bool, profile *models.ResellerProfile, balances []models.ResellerBalanceAccount) ResellerDashboardResp {
+func NewResellerDashboardResp(opened bool, profile *models.ResellerProfile, balances []models.ResellerBalanceAccount, withdrawEnabled bool, withdrawDisabledReason string) ResellerDashboardResp {
 	if !opened {
 		return ResellerDashboardResp{Opened: false}
 	}
 	return ResellerDashboardResp{
-		Opened:   true,
-		Profile:  NewResellerProfileSummaryResp(profile),
-		Balances: NewResellerBalanceRespList(balances),
+		Opened:                 true,
+		Profile:                NewResellerProfileSummaryResp(profile),
+		Balances:               NewResellerBalanceRespList(balances),
+		WithdrawEnabled:        withdrawEnabled,
+		WithdrawDisabledReason: withdrawDisabledReason,
 	}
 }

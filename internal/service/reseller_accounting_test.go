@@ -117,8 +117,43 @@ func TestResellerAccountingServiceGetUserFinanceDashboardScopesToUserProfile(t *
 	if !dashboard.Opened || dashboard.Profile == nil || dashboard.Profile.ID != profile.ID {
 		t.Fatalf("expected opened dashboard for profile %d, got %+v", profile.ID, dashboard)
 	}
+	if !dashboard.WithdrawEnabled || dashboard.WithdrawDisabledReason != "" {
+		t.Fatalf("expected active normal profile withdraw enabled, got %+v", dashboard)
+	}
 	if len(dashboard.Balances) != 1 || dashboard.Balances[0].AvailableAmountCache.String() != "18.50" {
 		t.Fatalf("expected scoped balances, got %+v", dashboard.Balances)
+	}
+}
+
+func TestResellerAccountingServiceGetUserFinanceDashboardMarksWithdrawUnavailable(t *testing.T) {
+	db := openResellerAccountingServiceTestDB(t)
+	repo := repository.NewResellerRepository(db)
+	svc := NewResellerAccountingService(repo, ResellerAccountingOptions{})
+
+	inactive := seedResellerAccountingProfile(t, db)
+	inactive.Status = models.ResellerProfileStatusDisabled
+	if err := db.Save(&inactive).Error; err != nil {
+		t.Fatalf("disable profile failed: %v", err)
+	}
+	inactiveDashboard, err := svc.GetUserFinanceDashboard(inactive.UserID)
+	if err != nil {
+		t.Fatalf("GetUserFinanceDashboard inactive failed: %v", err)
+	}
+	if !inactiveDashboard.Opened || inactiveDashboard.WithdrawEnabled || inactiveDashboard.WithdrawDisabledReason != ResellerWithdrawDisabledReasonProfileInactive {
+		t.Fatalf("expected inactive profile withdraw disabled, got %+v", inactiveDashboard)
+	}
+
+	frozen := seedResellerAccountingProfile(t, db)
+	frozen.SettlementStatus = models.ResellerSettlementStatusFrozen
+	if err := db.Save(&frozen).Error; err != nil {
+		t.Fatalf("freeze settlement failed: %v", err)
+	}
+	frozenDashboard, err := svc.GetUserFinanceDashboard(frozen.UserID)
+	if err != nil {
+		t.Fatalf("GetUserFinanceDashboard frozen failed: %v", err)
+	}
+	if !frozenDashboard.Opened || frozenDashboard.WithdrawEnabled || frozenDashboard.WithdrawDisabledReason != ResellerWithdrawDisabledReasonSettlementUnavailable {
+		t.Fatalf("expected frozen settlement withdraw disabled, got %+v", frozenDashboard)
 	}
 }
 
@@ -607,5 +642,38 @@ func TestResellerAccountingPayWithdrawMarksLedgersWithdrawn(t *testing.T) {
 	}
 	if withdrawn.Status != models.ResellerLedgerStatusWithdrawn || withdrawn.WithdrawRequestID == nil || *withdrawn.WithdrawRequestID != req.ID {
 		t.Fatalf("expected withdrawn ledger, got %+v", withdrawn)
+	}
+	var balance models.ResellerBalanceAccount
+	if err := db.Where("reseller_id = ? AND currency = ?", profile.ID, "USD").First(&balance).Error; err != nil {
+		t.Fatalf("load balance failed: %v", err)
+	}
+	if balance.AvailableAmountCache.String() != "0.00" || balance.LockedAmountCache.String() != "0.00" || balance.NegativeAmountCache.String() != "0.00" || balance.Status != models.ResellerBalanceStatusNormal {
+		t.Fatalf("expected zero normal balance after full paid withdraw, got %+v", balance)
+	}
+}
+
+func TestResellerAccountingPayPartialWithdrawKeepsRemainingAvailableBalance(t *testing.T) {
+	db := openResellerAccountingServiceTestDB(t)
+	profile := seedResellerAccountingProfile(t, db)
+	now := time.Now()
+	row := models.ResellerLedgerEntry{ResellerID: profile.ID, Type: models.ResellerLedgerTypeOrderProfit, Amount: models.NewMoneyFromDecimal(decimal.NewFromInt(60)), Currency: "USD", IdempotencyKey: "order_profit:pay-partial", Status: models.ResellerLedgerStatusAvailable, AvailableAt: &now}
+	if err := db.Create(&row).Error; err != nil {
+		t.Fatalf("seed ledger failed: %v", err)
+	}
+	repo := repository.NewResellerRepository(db)
+	svc := NewResellerAccountingService(repo, ResellerAccountingOptions{ConfirmDays: 0})
+	req, err := svc.ApplyWithdraw(profile.ID, ResellerWithdrawApplyInput{Amount: decimal.NewFromInt(25), Currency: "USD", Channel: "usdt", Account: "T-address"})
+	if err != nil {
+		t.Fatalf("apply withdraw failed: %v", err)
+	}
+	if _, err := svc.ReviewWithdraw(99, req.ID, resellerWithdrawActionPay, ""); err != nil {
+		t.Fatalf("pay withdraw failed: %v", err)
+	}
+	var balance models.ResellerBalanceAccount
+	if err := db.Where("reseller_id = ? AND currency = ?", profile.ID, "USD").First(&balance).Error; err != nil {
+		t.Fatalf("load balance failed: %v", err)
+	}
+	if balance.AvailableAmountCache.String() != "35.00" || balance.LockedAmountCache.String() != "0.00" || balance.NegativeAmountCache.String() != "0.00" || balance.Status != models.ResellerBalanceStatusNormal {
+		t.Fatalf("expected remaining available balance 35.00 after partial paid withdraw, got %+v", balance)
 	}
 }

@@ -41,7 +41,7 @@ func (h *Handler) GetResellerDashboard(c *gin.Context) {
 		shared.RespondError(c, response.CodeInternal, "error.user_fetch_failed", err)
 		return
 	}
-	response.Success(c, dto.NewResellerDashboardResp(data.Opened, data.Profile, data.Balances))
+	response.Success(c, dto.NewResellerDashboardResp(data.Opened, data.Profile, data.Balances, data.WithdrawEnabled, data.WithdrawDisabledReason))
 }
 
 // ListResellerBalanceAccounts 查询当前用户的分销余额账户。

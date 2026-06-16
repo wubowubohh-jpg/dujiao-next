@@ -28,11 +28,29 @@ func TestResellerLedgerRespOmitsSensitiveSnapshotFields(t *testing.T) {
 }
 
 func TestResellerDashboardRespNotOpened(t *testing.T) {
-	resp := NewResellerDashboardResp(false, nil, nil)
+	resp := NewResellerDashboardResp(false, nil, nil, false, "")
 	if resp.Opened {
 		t.Fatalf("expected unopened dashboard, got %+v", resp)
 	}
 	if resp.Profile != nil || len(resp.Balances) != 0 {
 		t.Fatalf("unopened dashboard should not include profile or balances: %+v", resp)
+	}
+}
+
+func TestResellerDashboardRespIncludesWithdrawAvailability(t *testing.T) {
+	resp := NewResellerDashboardResp(true, &models.ResellerProfile{
+		ID:               9,
+		Status:           models.ResellerProfileStatusDisabled,
+		SettlementStatus: models.ResellerSettlementStatusFrozen,
+	}, nil, false, "settlement_unavailable")
+
+	if !resp.Opened {
+		t.Fatalf("expected opened dashboard, got %+v", resp)
+	}
+	if resp.WithdrawEnabled {
+		t.Fatalf("expected withdraw disabled, got %+v", resp)
+	}
+	if resp.WithdrawDisabledReason != "settlement_unavailable" {
+		t.Fatalf("unexpected withdraw disabled reason: %+v", resp)
 	}
 }
