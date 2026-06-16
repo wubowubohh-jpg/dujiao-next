@@ -25,6 +25,8 @@ func openResellerAccountingRepoTestDB(t *testing.T) *gorm.DB {
 		&models.Order{},
 		&models.Payment{},
 		&models.ResellerProfile{},
+		&models.ResellerDomain{},
+		&models.ResellerSiteConfig{},
 		&models.ResellerOrderSnapshot{},
 		&models.ResellerLedgerEntry{},
 		&models.ResellerWithdrawRequest{},
