@@ -122,9 +122,9 @@ func (ResellerSiteConfig) TableName() string { return "reseller_site_configs" }
 // ResellerProductSetting 分销商商品配置。
 type ResellerProductSetting struct {
 	ID                uint           `gorm:"primarykey" json:"id"`
-	ResellerID        uint           `gorm:"not null;index" json:"reseller_id"`
-	ProductID         uint           `gorm:"not null;index" json:"product_id"`
-	SKUID             uint           `gorm:"column:sku_id;not null;default:0;index" json:"sku_id"`
+	ResellerID        uint           `gorm:"not null;index;uniqueIndex:idx_reseller_product_setting_scope,priority:1,where:deleted_at IS NULL" json:"reseller_id"`
+	ProductID         uint           `gorm:"not null;index;uniqueIndex:idx_reseller_product_setting_scope,priority:2,where:deleted_at IS NULL" json:"product_id"`
+	SKUID             uint           `gorm:"column:sku_id;not null;default:0;index;uniqueIndex:idx_reseller_product_setting_scope,priority:3,where:deleted_at IS NULL" json:"sku_id"`
 	IsListed          bool           `gorm:"not null;default:true" json:"is_listed"`
 	PricingMode       string         `gorm:"type:varchar(32);not null;default:'inherit'" json:"pricing_mode"`
 	MarkupPercent     Money          `gorm:"type:decimal(10,2);not null;default:0" json:"markup_percent"`
@@ -134,6 +134,9 @@ type ResellerProductSetting struct {
 	CreatedAt         time.Time      `gorm:"index" json:"created_at"`
 	UpdatedAt         time.Time      `gorm:"index" json:"updated_at"`
 	DeletedAt         gorm.DeletedAt `gorm:"index" json:"-"`
+
+	Product *Product         `gorm:"foreignKey:ProductID" json:"product,omitempty"`
+	Profile *ResellerProfile `gorm:"foreignKey:ResellerID" json:"profile,omitempty"`
 }
 
 func (ResellerProductSetting) TableName() string { return "reseller_product_settings" }

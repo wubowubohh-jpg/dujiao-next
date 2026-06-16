@@ -139,6 +139,91 @@ type AdminResellerSiteConfigResp struct {
 	UpdatedAt    time.Time                         `json:"updated_at"`
 }
 
+type ResellerProductSettingResp struct {
+	ID                   uint       `json:"id"`
+	ProductID            uint       `json:"product_id"`
+	SKUID                uint       `json:"sku_id"`
+	IsListed             bool       `json:"is_listed"`
+	PricingMode          string     `json:"pricing_mode"`
+	MarkupPercent        string     `json:"markup_percent"`
+	FixedMarkupAmount    string     `json:"fixed_markup_amount"`
+	FixedPriceAmount     string     `json:"fixed_price_amount"`
+	EffectivePriceAmount string     `json:"effective_price_amount,omitempty"`
+	RuleSource           string     `json:"rule_source,omitempty"`
+	SortOrder            int        `json:"sort_order"`
+	UpdatedAt            *time.Time `json:"updated_at,omitempty"`
+}
+
+type ResellerProductSettingProductResp struct {
+	ID          uint        `json:"id"`
+	Slug        string      `json:"slug"`
+	Title       models.JSON `json:"title"`
+	PriceAmount string      `json:"price_amount"`
+	IsActive    bool        `json:"is_active"`
+}
+
+type ResellerProductSettingSKUResp struct {
+	ID              uint                        `json:"id"`
+	SKUCode         string                      `json:"sku_code"`
+	SpecValues      models.JSON                 `json:"spec_values"`
+	BasePriceAmount string                      `json:"base_price_amount"`
+	IsActive        bool                        `json:"is_active"`
+	Setting         *ResellerProductSettingResp `json:"setting,omitempty"`
+	EffectivePrice  string                      `json:"effective_price_amount,omitempty"`
+}
+
+type ResellerProductSettingDetailResp struct {
+	Product        ResellerProductSettingProductResp `json:"product"`
+	ProductSetting *ResellerProductSettingResp       `json:"product_setting,omitempty"`
+	SKUs           []ResellerProductSettingSKUResp   `json:"skus"`
+}
+
+type ResellerProductSettingDTOInput struct {
+	Product          models.Product
+	Settings         []models.ResellerProductSetting
+	EffectiveBySKUID map[uint]string
+	RuleBySKUID      map[uint]string
+}
+
+type AdminResellerProductSettingUserResp struct {
+	ID          uint   `json:"id"`
+	Email       string `json:"email"`
+	DisplayName string `json:"display_name"`
+}
+
+type AdminResellerProductSettingProfileResp struct {
+	ID               uint                                 `json:"id"`
+	UserID           uint                                 `json:"user_id"`
+	Status           string                               `json:"status"`
+	SettlementStatus string                               `json:"settlement_status"`
+	User             *AdminResellerProductSettingUserResp `json:"user,omitempty"`
+}
+
+type AdminResellerProductSettingProductResp struct {
+	ID          uint        `json:"id"`
+	Slug        string      `json:"slug"`
+	Title       models.JSON `json:"title"`
+	PriceAmount string      `json:"price_amount"`
+	IsActive    bool        `json:"is_active"`
+}
+
+type AdminResellerProductSettingResp struct {
+	ID                uint                                    `json:"id"`
+	ResellerID        uint                                    `json:"reseller_id"`
+	ProductID         uint                                    `json:"product_id"`
+	SKUID             uint                                    `json:"sku_id"`
+	IsListed          bool                                    `json:"is_listed"`
+	PricingMode       string                                  `json:"pricing_mode"`
+	MarkupPercent     string                                  `json:"markup_percent"`
+	FixedMarkupAmount string                                  `json:"fixed_markup_amount"`
+	FixedPriceAmount  string                                  `json:"fixed_price_amount"`
+	SortOrder         int                                     `json:"sort_order"`
+	CreatedAt         time.Time                               `json:"created_at"`
+	UpdatedAt         time.Time                               `json:"updated_at"`
+	Profile           *AdminResellerProductSettingProfileResp `json:"profile,omitempty"`
+	Product           *AdminResellerProductSettingProductResp `json:"product,omitempty"`
+}
+
 func NewResellerProfileSummaryResp(profile *models.ResellerProfile) *ResellerProfileSummaryResp {
 	if profile == nil {
 		return nil
@@ -295,6 +380,127 @@ func NewAdminResellerSiteConfigRespList(rows []models.ResellerSiteConfig) []Admi
 		result = append(result, NewAdminResellerSiteConfigResp(&rows[i]))
 	}
 	return result
+}
+
+func NewResellerProductSettingDetailResp(input ResellerProductSettingDTOInput) ResellerProductSettingDetailResp {
+	productSetting := findResellerProductSetting(input.Settings, 0)
+	resp := ResellerProductSettingDetailResp{
+		Product: ResellerProductSettingProductResp{
+			ID:          input.Product.ID,
+			Slug:        input.Product.Slug,
+			Title:       input.Product.TitleJSON,
+			PriceAmount: input.Product.PriceAmount.String(),
+			IsActive:    input.Product.IsActive,
+		},
+		SKUs: make([]ResellerProductSettingSKUResp, 0, len(input.Product.SKUs)),
+	}
+	if productSetting != nil {
+		resp.ProductSetting = newResellerProductSettingResp(*productSetting, input.EffectiveBySKUID[0], input.RuleBySKUID[0])
+	}
+	for i := range input.Product.SKUs {
+		sku := input.Product.SKUs[i]
+		setting := findResellerProductSetting(input.Settings, sku.ID)
+		var settingResp *ResellerProductSettingResp
+		if setting != nil {
+			settingResp = newResellerProductSettingResp(*setting, input.EffectiveBySKUID[sku.ID], input.RuleBySKUID[sku.ID])
+		}
+		resp.SKUs = append(resp.SKUs, ResellerProductSettingSKUResp{
+			ID:              sku.ID,
+			SKUCode:         sku.SKUCode,
+			SpecValues:      sku.SpecValuesJSON,
+			BasePriceAmount: sku.PriceAmount.String(),
+			IsActive:        sku.IsActive,
+			Setting:         settingResp,
+			EffectivePrice:  input.EffectiveBySKUID[sku.ID],
+		})
+	}
+	return resp
+}
+
+func NewResellerProductSettingListResp(rows []ResellerProductSettingDTOInput) []ResellerProductSettingDetailResp {
+	out := make([]ResellerProductSettingDetailResp, 0, len(rows))
+	for i := range rows {
+		out = append(out, NewResellerProductSettingDetailResp(rows[i]))
+	}
+	return out
+}
+
+func newResellerProductSettingResp(setting models.ResellerProductSetting, effectivePrice string, ruleSource string) *ResellerProductSettingResp {
+	updatedAt := setting.UpdatedAt
+	return &ResellerProductSettingResp{
+		ID:                   setting.ID,
+		ProductID:            setting.ProductID,
+		SKUID:                setting.SKUID,
+		IsListed:             setting.IsListed,
+		PricingMode:          setting.PricingMode,
+		MarkupPercent:        setting.MarkupPercent.String(),
+		FixedMarkupAmount:    setting.FixedMarkupAmount.String(),
+		FixedPriceAmount:     setting.FixedPriceAmount.String(),
+		EffectivePriceAmount: effectivePrice,
+		RuleSource:           ruleSource,
+		SortOrder:            setting.SortOrder,
+		UpdatedAt:            &updatedAt,
+	}
+}
+
+func findResellerProductSetting(settings []models.ResellerProductSetting, skuID uint) *models.ResellerProductSetting {
+	for i := range settings {
+		if settings[i].SKUID == skuID {
+			return &settings[i]
+		}
+	}
+	return nil
+}
+
+func NewAdminResellerProductSettingResp(row models.ResellerProductSetting) AdminResellerProductSettingResp {
+	resp := AdminResellerProductSettingResp{
+		ID:                row.ID,
+		ResellerID:        row.ResellerID,
+		ProductID:         row.ProductID,
+		SKUID:             row.SKUID,
+		IsListed:          row.IsListed,
+		PricingMode:       row.PricingMode,
+		MarkupPercent:     row.MarkupPercent.String(),
+		FixedMarkupAmount: row.FixedMarkupAmount.String(),
+		FixedPriceAmount:  row.FixedPriceAmount.String(),
+		SortOrder:         row.SortOrder,
+		CreatedAt:         row.CreatedAt,
+		UpdatedAt:         row.UpdatedAt,
+	}
+	if row.Profile != nil {
+		profile := &AdminResellerProductSettingProfileResp{
+			ID:               row.Profile.ID,
+			UserID:           row.Profile.UserID,
+			Status:           row.Profile.Status,
+			SettlementStatus: row.Profile.SettlementStatus,
+		}
+		if row.Profile.User != nil {
+			profile.User = &AdminResellerProductSettingUserResp{
+				ID:          row.Profile.User.ID,
+				Email:       row.Profile.User.Email,
+				DisplayName: row.Profile.User.DisplayName,
+			}
+		}
+		resp.Profile = profile
+	}
+	if row.Product != nil {
+		resp.Product = &AdminResellerProductSettingProductResp{
+			ID:          row.Product.ID,
+			Slug:        row.Product.Slug,
+			Title:       row.Product.TitleJSON,
+			PriceAmount: row.Product.PriceAmount.String(),
+			IsActive:    row.Product.IsActive,
+		}
+	}
+	return resp
+}
+
+func NewAdminResellerProductSettingRespList(rows []models.ResellerProductSetting) []AdminResellerProductSettingResp {
+	out := make([]AdminResellerProductSettingResp, 0, len(rows))
+	for i := range rows {
+		out = append(out, NewAdminResellerProductSettingResp(rows[i]))
+	}
+	return out
 }
 
 func NewResellerBalanceResp(row *models.ResellerBalanceAccount) ResellerBalanceResp {
