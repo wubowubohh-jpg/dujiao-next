@@ -1,5 +1,29 @@
 # syntax=docker/dockerfile:1
 
+FROM node:22-alpine AS frontend
+
+ARG USER_WEB_REPO=https://github.com/dujiao-next/user.git
+ARG ADMIN_WEB_REPO=https://github.com/dujiao-next/admin.git
+ARG USER_WEB_REF=main
+ARG ADMIN_WEB_REF=main
+
+WORKDIR /web
+
+RUN apk --no-cache add git \
+    && corepack enable \
+    && corepack prepare pnpm@10.34.3 --activate
+
+RUN git clone --depth 1 --branch "$USER_WEB_REF" "$USER_WEB_REPO" user
+WORKDIR /web/user
+RUN pnpm install --frozen-lockfile \
+    && pnpm run build
+
+WORKDIR /web
+RUN git clone --depth 1 --branch "$ADMIN_WEB_REF" "$ADMIN_WEB_REPO" admin
+WORKDIR /web/admin
+RUN pnpm install --frozen-lockfile \
+    && pnpm run build:fullstack
+
 FROM golang:1.26.3-alpine AS builder
 
 ARG TARGETOS
@@ -16,11 +40,13 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
+COPY --from=frontend /web/user/dist ./internal/web/dist/user
+COPY --from=frontend /web/admin/dist ./internal/web/dist/admin
 RUN set -eux; \
     export GOOS="$TARGETOS" GOARCH="$TARGETARCH"; \
     if [ "$TARGETARCH" = "arm" ] && [ -n "$TARGETVARIANT" ]; then export GOARM="${TARGETVARIANT#v}"; fi; \
     if [ "$TARGETARCH" = "amd64" ] && [ -n "$TARGETVARIANT" ]; then export GOAMD64="${TARGETVARIANT#v}"; fi; \
-    go build -trimpath -tags release -ldflags="-s -w -X github.com/dujiao-next/internal/version.Version=${APP_VERSION}" -o /out/dujiao-api ./cmd/server
+    go build -trimpath -tags "release fullstack" -ldflags="-s -w -X github.com/dujiao-next/internal/version.Version=${APP_VERSION}" -o /out/dujiao-api ./cmd/server
 
 FROM alpine:latest
 

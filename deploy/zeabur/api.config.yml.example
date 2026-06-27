@@ -1,0 +1,165 @@
+# Dujiao-Next API config for Zeabur.
+# Mount this file to /app/config.yml in the API service with Zeabur Config Editor.
+# Replace every value wrapped with __...__ before production use.
+
+app:
+  secret_key: "__APP_SECRET_32_PLUS_CHARS__"
+  totp_issuer: "Dujiao-Next"
+
+server:
+  host: 0.0.0.0
+  port: 8080
+  mode: release
+
+log:
+  dir: /app/logs
+  filename: app.log
+  max_size_mb: 100
+  max_backups: 14
+  max_age_days: 30
+  compress: true
+
+database:
+  driver: postgres
+  dsn: "host=__POSTGRES_PRIVATE_HOST__ port=5432 user=__POSTGRES_USER__ password=__POSTGRES_PASSWORD__ dbname=__POSTGRES_DB__ sslmode=disable TimeZone=Asia/Shanghai"
+  pool:
+    max_open_conns: 20
+    max_idle_conns: 5
+    conn_max_lifetime_seconds: 1200
+    conn_max_idle_time_seconds: 300
+
+jwt:
+  secret: "__ADMIN_JWT_SECRET_32_PLUS_CHARS__"
+  expire_hours: 24
+
+user_jwt:
+  secret: "__USER_JWT_SECRET_32_PLUS_CHARS__"
+  expire_hours: 24
+  remember_me_expire_hours: 168
+
+bootstrap:
+  default_admin_username: ""
+  default_admin_password: ""
+
+telegram_auth:
+  enabled: false
+  bot_username: ""
+  bot_token: ""
+  client_secret: ""
+  oidc_redirect_uri: ""
+  mini_app_url: ""
+  login_expire_seconds: 300
+  replay_ttl_seconds: 300
+
+redis:
+  enabled: true
+  host: __REDIS_PRIVATE_HOST__
+  port: 6379
+  password: "__REDIS_PASSWORD__"
+  db: 0
+  prefix: "dj"
+
+queue:
+  enabled: true
+  host: __REDIS_PRIVATE_HOST__
+  port: 6379
+  password: "__REDIS_PASSWORD__"
+  db: 1
+  concurrency: 10
+  queues:
+    default: 10
+    critical: 5
+  upstream_sync_interval: "5m"
+
+upload:
+  max_size: 10485760
+  allowed_types:
+    - image/jpeg
+    - image/png
+    - image/gif
+    - image/webp
+    - image/svg+xml
+  allowed_extensions:
+    - .jpg
+    - .jpeg
+    - .png
+    - .gif
+    - .webp
+    - .svg
+  max_width: 4096
+  max_height: 4096
+
+cors:
+  allowed_origins:
+    - "https://__SHOP_DOMAIN__"
+    - "https://__ADMIN_DOMAIN__"
+  allowed_methods:
+    - GET
+    - POST
+    - PUT
+    - PATCH
+    - DELETE
+    - OPTIONS
+  allowed_headers:
+    - Content-Type
+    - Content-Length
+    - Accept-Encoding
+    - Authorization
+    - Cache-Control
+    - X-Requested-With
+    - X-CSRF-Token
+  allow_credentials: true
+  max_age: 600
+
+security:
+  login_rate_limit:
+    window_seconds: 300
+    max_attempts: 5
+    block_seconds: 900
+  password_policy:
+    min_length: 8
+    require_upper: true
+    require_lower: true
+    require_number: true
+    require_special: false
+
+email:
+  enabled: false
+  host: ""
+  port: 587
+  username: ""
+  password: ""
+  from: ""
+  from_name: ""
+  use_tls: true
+  use_ssl: false
+  verify_code:
+    expire_minutes: 10
+    send_interval_seconds: 60
+    max_attempts: 5
+    length: 6
+
+order:
+  payment_expire_minutes: 15
+  max_refund_days: 30
+
+captcha:
+  provider: none
+  scenes:
+    login: false
+    register_send_code: false
+    reset_send_code: false
+    guest_create_order: false
+    gift_card_redeem: false
+
+reseller:
+  enabled: false
+  main_hosts:
+    - "__SHOP_DOMAIN__"
+  trusted_forwarded_host: true
+  subdomain_base: ""
+  self_apply_enabled: true
+  settlement_confirm_days: 7
+
+web:
+  admin_path: "/admin"
