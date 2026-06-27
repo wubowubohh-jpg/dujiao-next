@@ -122,12 +122,6 @@ func printStartupBanner() {
 	fmt.Println(ansiCyan + "██║  ██║██║   ██║██   ██║██╔══██║██║   ██║     ██║╚██╗██║██╔══╝   ██╔██╗    ██║   " + ansiReset)
 	fmt.Println(ansiCyan + "██████╔╝╚██████╔╝╚█████╔╝██║  ██║╚██████╔╝     ██║ ╚████║███████╗██╔╝ ██╗   ██║   " + ansiReset)
 	fmt.Println(ansiCyan + "╚═════╝  ╚═════╝  ╚════╝ ╚═╝  ╚═╝ ╚═════╝      ╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝   ╚═╝   " + ansiReset)
-	fmt.Println(ansiGreen + ansiBold + "Open Source Repositories" + ansiReset)
-	fmt.Println(ansiBlue + "• Root:    https://github.com/dujiao-next" + ansiReset)
-	fmt.Println(ansiBlue + "• API:     https://github.com/dujiao-next/dujiao-next" + ansiReset)
-	fmt.Println(ansiBlue + "• User:    https://github.com/dujiao-next/user" + ansiReset)
-	fmt.Println(ansiBlue + "• Admin:   https://github.com/dujiao-next/admin" + ansiReset)
-	fmt.Println(ansiBlue + "• Official:https://github.com/dujiao-next/document" + ansiReset)
 	fmt.Println(ansiGreen + "Version: " + version.Version + ansiReset)
 	fmt.Println(ansiDim + "--------------------------------------------------------------" + ansiReset)
 }

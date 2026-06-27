@@ -2,4 +2,4 @@
 
 package adgateway
 
-const ServerURL = "https://ads-gateway.dujiao-next.com"
+const ServerURL = ""

@@ -1,7 +1,6 @@
 package service
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -65,6 +64,10 @@ type AdRenderResponse struct {
 
 // RenderSlot 请求 ad-system 渲染指定广告位
 func (s *AdProxyService) RenderSlot(ctx context.Context, slotCode string, params map[string]string) (*AdRenderResponse, error) {
+	if s.baseURL == "" {
+		return nil, nil
+	}
+
 	u, err := url.Parse(fmt.Sprintf("%s/api/v1/public/ad-slots/%s/render", s.baseURL, url.PathEscape(slotCode)))
 	if err != nil {
 		return nil, fmt.Errorf("ad_proxy: invalid url: %w", err)
@@ -113,26 +116,7 @@ func (s *AdProxyService) RenderSlot(ctx context.Context, slotCode string, params
 	return apiResp.Data, nil
 }
 
-// ReportImpression 上报广告曝光
+// ReportImpression 保留方法兼容现有调用方，但不再向外部广告服务上报。
 func (s *AdProxyService) ReportImpression(ctx context.Context, payload json.RawMessage) error {
-	u := fmt.Sprintf("%s/api/v1/public/ad-events/impression", s.baseURL)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u, bytes.NewReader(payload))
-	if err != nil {
-		return fmt.Errorf("ad_proxy: create request failed: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := s.client.Do(req)
-	if err != nil {
-		logger.Warnw("ad_proxy_report_impression_failed", "error", err)
-		return fmt.Errorf("ad_proxy: request failed: %w", err)
-	}
-	defer resp.Body.Close()
-	io.Copy(io.Discard, resp.Body)
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("ad_proxy: upstream returned %d", resp.StatusCode)
-	}
 	return nil
 }

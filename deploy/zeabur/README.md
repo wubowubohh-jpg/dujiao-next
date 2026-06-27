@@ -4,10 +4,7 @@ This guide contains two deployment modes.
 
 ## Mode A: one-service fullstack deployment
 
-The root `Dockerfile` builds the configured user/admin frontends and embeds them into the Go API binary with the `fullstack` build tag. By default it uses:
-
-- https://github.com/wubowubohh-jpg/user
-- https://github.com/wubowubohh-jpg/admin
+The root `Dockerfile` builds the configured user/admin frontends and embeds them into the Go API binary with the `fullstack` build tag.
 
 This is the simplest Zeabur deployment:
 
@@ -51,7 +48,7 @@ Create PostgreSQL and Redis from Zeabur templates. Copy their private hostnames 
 
 ### 3. Dujiao-Next service
 
-Deploy this GitHub repository directly. Zeabur should build it with the root `Dockerfile`.
+Deploy this source repository directly. Zeabur should build it with the root `Dockerfile`.
 
 Service port:
 
@@ -128,7 +125,7 @@ Open each service's `Networking` tab and copy the `Private` hostname. Zeabur doc
 
 Use one of these two approaches:
 
-- Deploy this GitHub repository directly. Zeabur should build it with the root `Dockerfile`.
+- Deploy this source repository directly. Zeabur should build it with the root `Dockerfile`.
 - Or deploy the official Docker image, for example `dujiaonext/api:latest`.
 
 API port:
@@ -278,8 +275,6 @@ https://__SHOP_DOMAIN__/api/v1/payments/webhook/stripe
 
 ## References
 
-- Dujiao-Next Docker Compose deployment: https://dujiao-next.com/deploy/docker-compose
-- Dujiao-Next config: https://dujiao-next.com/config/config-yml
 - Zeabur Private Networking: https://zeabur.com/docs/en-US/deploy/networking/private-networking
 - Zeabur Config Editor: https://zeabur.com/docs/en-US/operations/data/config-file-management
 - Zeabur Volumes: https://zeabur.com/docs/en-US/data-management/volumes

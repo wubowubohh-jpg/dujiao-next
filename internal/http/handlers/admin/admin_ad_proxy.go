@@ -1,8 +1,6 @@
 package admin
 
 import (
-	"encoding/json"
-	"io"
 	"net/http"
 
 	"github.com/dujiao-next/internal/http/response"
@@ -34,19 +32,7 @@ func (h *Handler) GetAdRender(c *gin.Context) {
 	response.Success(c, data)
 }
 
-// PostAdImpression 代理广告曝光上报到 ad-system
+// PostAdImpression 保留管理端曝光接口兼容前端，但不再向外部广告服务上报。
 func (h *Handler) PostAdImpression(c *gin.Context) {
-	body, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		response.Error(c, http.StatusBadRequest, "invalid request body")
-		return
-	}
-
-	if err := h.AdProxyService.ReportImpression(c.Request.Context(), json.RawMessage(body)); err != nil {
-		// 曝光上报失败不影响主业务
-		response.Success(c, nil)
-		return
-	}
-
 	response.Success(c, nil)
 }

@@ -2,7 +2,6 @@ package admin
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/dujiao-next/internal/http/handlers/shared"
@@ -12,7 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// CheckSystemUpdate 通过 GitHub Releases API 检测是否有新版本发布
+// CheckSystemUpdate returns local version status without external update checks.
 // GET /api/v1/admin/system/version/check
 func (h *Handler) CheckSystemUpdate(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 12*time.Second)
@@ -20,10 +19,6 @@ func (h *Handler) CheckSystemUpdate(c *gin.Context) {
 
 	result, err := version.CheckLatestRelease(ctx)
 	if err != nil {
-		if errors.Is(err, version.ErrRateLimited) {
-			shared.RespondError(c, response.CodeTooManyRequests, "error.update_check_rate_limited", err)
-			return
-		}
 		shared.RespondError(c, response.CodeInternal, "error.update_check_failed", err)
 		return
 	}
