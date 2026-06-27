@@ -29,7 +29,7 @@ var (
 )
 
 const (
-	totpIssuerDefault     = "Dujiao-Next"
+	totpIssuerDefault     = "独角兽商城"
 	totpPendingTTL        = 10 * time.Minute
 	totpEnableMaxFailures = 5
 	totpRecoveryCodeCount = 10

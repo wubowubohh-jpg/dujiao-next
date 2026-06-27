@@ -1,10 +1,10 @@
-# Dujiao-Next API config for Zeabur.
+# 独角兽商城 API config for Zeabur.
 # Mount this file to /app/config.yml in the API service with Zeabur Config Editor.
 # Replace every value wrapped with __...__ before production use.
 
 app:
   secret_key: "__APP_SECRET_32_PLUS_CHARS__"
-  totp_issuer: "Dujiao-Next"
+  totp_issuer: "独角兽商城"
 
 server:
   host: 0.0.0.0

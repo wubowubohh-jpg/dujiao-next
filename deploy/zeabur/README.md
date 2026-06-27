@@ -1,4 +1,4 @@
-# Dujiao-Next on Zeabur
+# 独角兽商城 on Zeabur
 
 This guide contains two deployment modes.
 
@@ -10,7 +10,7 @@ This is the simplest Zeabur deployment:
 
 - PostgreSQL
 - Redis
-- One Dujiao-Next service
+- One Unicorn Store service
 
 The service exposes:
 
@@ -27,7 +27,7 @@ Prepare one public domain:
 __SHOP_DOMAIN__   # example: shop.example.com
 ```
 
-Bind it directly to the Dujiao-Next API/fullstack service on port `8080`.
+Bind it directly to the Unicorn Store API/fullstack service on port `8080`.
 
 If you want the admin path to be harder to guess, set it in `/app/config.yml`:
 
@@ -46,7 +46,7 @@ https://__SHOP_DOMAIN__/console-private
 
 Create PostgreSQL and Redis from Zeabur templates. Copy their private hostnames from Zeabur Networking.
 
-### 3. Dujiao-Next service
+### 3. Unicorn Store service
 
 Deploy this source repository directly. Zeabur should build it with the root `Dockerfile`.
 

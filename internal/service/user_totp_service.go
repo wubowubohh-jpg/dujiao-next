@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	userTotpIssuerDefault     = "Dujiao-Next-User"
+	userTotpIssuerDefault     = "独角兽商城-用户"
 	userTotpPendingTTL        = 10 * time.Minute
 	userTotpEnableMaxFailures = 5
 	userTotpRecoveryCodeCount = 10

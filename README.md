@@ -1,6 +1,6 @@
-# Dujiao-Next API
+# 独角兽商城 API
 
-Dujiao-Next API is the backend service for the Dujiao-Next ecosystem. It provides public APIs, user/auth APIs, order and payment workflows, and admin APIs.
+Unicorn Store API is the backend service for the Unicorn Store ecosystem. It provides public APIs, user/auth APIs, order and payment workflows, and admin APIs.
 
 ## Tech Stack
 
