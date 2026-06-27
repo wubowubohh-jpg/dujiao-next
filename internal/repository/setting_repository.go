@@ -27,11 +27,15 @@ func NewSettingRepository(db *gorm.DB) *GormSettingRepository {
 // GetByKey 获取设置
 func (r *GormSettingRepository) GetByKey(key string) (*models.Setting, error) {
 	var setting models.Setting
-	if err := r.db.Where("key = ?", key).First(&setting).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+	result := r.db.Where("key = ?", key).Find(&setting)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
-		return nil, err
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, nil
 	}
 	return &setting, nil
 }
