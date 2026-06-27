@@ -2,8 +2,8 @@
 
 FROM node:22-alpine AS frontend
 
-ARG USER_WEB_REPO=https://github.com/dujiao-next/user.git
-ARG ADMIN_WEB_REPO=https://github.com/dujiao-next/admin.git
+ARG USER_WEB_REPO=https://github.com/wubowubohh-jpg/user.git
+ARG ADMIN_WEB_REPO=https://github.com/wubowubohh-jpg/admin.git
 ARG USER_WEB_REF=main
 ARG ADMIN_WEB_REF=main
 

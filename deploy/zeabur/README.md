@@ -4,7 +4,12 @@ This guide contains two deployment modes.
 
 ## Mode A: one-service fullstack deployment
 
-The root `Dockerfile` builds the official user/admin frontends and embeds them into the Go API binary with the `fullstack` build tag. This is the simplest Zeabur deployment:
+The root `Dockerfile` builds the configured user/admin frontends and embeds them into the Go API binary with the `fullstack` build tag. By default it uses:
+
+- https://github.com/wubowubohh-jpg/user
+- https://github.com/wubowubohh-jpg/admin
+
+This is the simplest Zeabur deployment:
 
 - PostgreSQL
 - Redis
