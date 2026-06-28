@@ -47,6 +47,7 @@ const (
 	alipayMethodPrecreate = "alipay.trade.precreate"
 	alipayMethodWAPPay    = "alipay.trade.wap.pay"
 	alipayMethodPagePay   = "alipay.trade.page.pay"
+	alipayMethodQuery     = "alipay.trade.query"
 
 	alipayProductCodeFaceToFace = "FACE_TO_FACE_PAYMENT"
 	alipayProductCodeQuickWAP   = "QUICK_WAP_WAY"
@@ -88,6 +89,16 @@ type CreateResult struct {
 	OutTradeNo string
 	Method     string
 	Raw        map[string]interface{}
+}
+
+// QueryResult 支付宝查单返回。
+type QueryResult struct {
+	TradeNo     string
+	OutTradeNo  string
+	TradeStatus string
+	TotalAmount string
+	PaidAtRaw   string
+	Raw         map[string]interface{}
 }
 
 // ParseConfig 解析配置。
@@ -295,6 +306,57 @@ func VerifyCallbackOwnership(cfg *Config, form map[string][]string) error {
 	return nil
 }
 
+// QueryPayment 主动查询支付宝订单状态。
+func QueryPayment(ctx context.Context, cfg *Config, orderRef string) (*QueryResult, error) {
+	if err := ValidateConfig(cfg, constants.PaymentInteractionQR); err != nil {
+		return nil, err
+	}
+	orderRef = strings.TrimSpace(orderRef)
+	if orderRef == "" {
+		return nil, fmt.Errorf("%w: order ref is required", ErrConfigInvalid)
+	}
+
+	bizContent := map[string]string{}
+	if looksLikeAlipayTradeNo(orderRef) {
+		bizContent["trade_no"] = orderRef
+	} else {
+		bizContent["out_trade_no"] = orderRef
+	}
+	bizContentBytes, err := json.Marshal(bizContent)
+	if err != nil {
+		return nil, fmt.Errorf("%w: marshal biz_content failed", ErrConfigInvalid)
+	}
+
+	params := map[string]string{
+		"app_id":      cfg.AppID,
+		"method":      alipayMethodQuery,
+		"format":      alipayReqFormatJSON,
+		"charset":     alipayReqCharset,
+		"sign_type":   cfg.SignType,
+		"timestamp":   time.Now().Format("2006-01-02 15:04:05"),
+		"version":     alipayReqVersion,
+		"biz_content": string(bizContentBytes),
+	}
+	if strings.TrimSpace(cfg.AppCertSN) != "" {
+		params["app_cert_sn"] = strings.TrimSpace(cfg.AppCertSN)
+	}
+	if strings.TrimSpace(cfg.AlipayRootCertSN) != "" {
+		params["alipay_root_cert_sn"] = strings.TrimSpace(cfg.AlipayRootCertSN)
+	}
+
+	sign, err := signContent(buildSignContent(params), cfg.PrivateKey, cfg.SignType)
+	if err != nil {
+		return nil, err
+	}
+	params["sign"] = sign
+
+	responseBody, err := postGateway(ctx, cfg.GatewayURL, params)
+	if err != nil {
+		return nil, err
+	}
+	return parseQueryResponse(responseBody)
+}
+
 func requestPrecreate(ctx context.Context, cfg *Config, method string, params map[string]string, fallbackOrderNo string) (*CreateResult, error) {
 	responseBody, err := postGateway(ctx, cfg.GatewayURL, params)
 	if err != nil {
@@ -337,6 +399,51 @@ func requestPrecreate(ctx context.Context, cfg *Config, method string, params ma
 		return nil, fmt.Errorf("%w: qr_code is empty", ErrResponseInvalid)
 	}
 	return result, nil
+}
+
+func parseQueryResponse(responseBody []byte) (*QueryResult, error) {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(responseBody, &raw); err != nil {
+		return nil, fmt.Errorf("%w: decode response failed", ErrResponseInvalid)
+	}
+	responseNode, ok := raw["alipay_trade_query_response"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("%w: alipay_trade_query_response not found", ErrResponseInvalid)
+	}
+
+	code := strings.TrimSpace(readString(responseNode, "code"))
+	if code != alipayRespCodeSuccess {
+		errMsg := strings.TrimSpace(readString(responseNode, "sub_msg"))
+		if errMsg == "" {
+			errMsg = strings.TrimSpace(readString(responseNode, "msg"))
+		}
+		if errMsg == "" {
+			errMsg = "code=" + code
+		}
+		return nil, fmt.Errorf("%w: %s", ErrResponseInvalid, errMsg)
+	}
+
+	return &QueryResult{
+		TradeNo:     strings.TrimSpace(readString(responseNode, "trade_no")),
+		OutTradeNo:  strings.TrimSpace(readString(responseNode, "out_trade_no")),
+		TradeStatus: strings.TrimSpace(readString(responseNode, "trade_status")),
+		TotalAmount: strings.TrimSpace(readString(responseNode, "total_amount")),
+		PaidAtRaw:   strings.TrimSpace(readString(responseNode, "send_pay_date")),
+		Raw:         raw,
+	}, nil
+}
+
+func looksLikeAlipayTradeNo(orderRef string) bool {
+	orderRef = strings.TrimSpace(orderRef)
+	if len(orderRef) < 16 {
+		return false
+	}
+	for _, r := range orderRef {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 func resolveMethod(mode string) (string, error) {

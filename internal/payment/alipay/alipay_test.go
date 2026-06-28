@@ -167,6 +167,52 @@ func TestCreatePaymentPrecreateResponseError(t *testing.T) {
 	}
 }
 
+func TestQueryPaymentSuccess(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected post request, got %s", r.Method)
+		}
+		if err := r.ParseForm(); err != nil {
+			t.Fatalf("parse form failed: %v", err)
+		}
+		if r.Form.Get("method") != alipayMethodQuery {
+			t.Fatalf("expected query method, got %s", r.Form.Get("method"))
+		}
+		var biz map[string]string
+		if err := json.Unmarshal([]byte(r.Form.Get("biz_content")), &biz); err != nil {
+			t.Fatalf("decode biz_content: %v", err)
+		}
+		if biz["out_trade_no"] != "DJP20260628161408378842" {
+			t.Fatalf("out_trade_no = %q", biz["out_trade_no"])
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"alipay_trade_query_response": map[string]interface{}{
+				"code":          "10000",
+				"msg":           "Success",
+				"out_trade_no":  "DJP20260628161408378842",
+				"trade_no":      "2026062822000000000001",
+				"trade_status":  "TRADE_SUCCESS",
+				"total_amount":  "0.01",
+				"send_pay_date": "2026-06-28 16:15:00",
+			},
+			"sign": "test-sign",
+		})
+	}))
+	defer server.Close()
+
+	cfg := buildTestConfig(server.URL)
+	result, err := QueryPayment(context.Background(), cfg, "DJP20260628161408378842")
+	if err != nil {
+		t.Fatalf("query payment failed: %v", err)
+	}
+	if result.TradeStatus != "TRADE_SUCCESS" {
+		t.Fatalf("trade status = %q", result.TradeStatus)
+	}
+	if result.TotalAmount != "0.01" {
+		t.Fatalf("total amount = %q", result.TotalAmount)
+	}
+}
+
 func TestVerifyCallbackSuccess(t *testing.T) {
 	cfg := buildTestConfig("https://openapi.alipay.com/gateway.do")
 	form := map[string][]string{

@@ -161,6 +161,54 @@ func TestAlipayAdapter_CreatePayment_ExchangeRate_AuditFields(t *testing.T) {
 	}
 }
 
+func TestAlipayAdapter_QueryPaymentSuccess(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			t.Fatalf("parse form: %v", err)
+		}
+		if got := r.Form.Get("method"); got != "alipay.trade.query" {
+			t.Fatalf("method = %q", got)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"alipay_trade_query_response": map[string]any{
+				"code":          "10000",
+				"msg":           "Success",
+				"out_trade_no":  "DJP20260628161408378842",
+				"trade_no":      "2026062822000000000001",
+				"trade_status":  "TRADE_SUCCESS",
+				"total_amount":  "0.01",
+				"send_pay_date": "2026-06-28 16:15:00",
+			},
+			"sign": "test-sign",
+		})
+	}))
+	defer server.Close()
+
+	privateKeyPEM, publicKeyPEM := buildAlipayTestKeyPair(t)
+	raw := models.JSON{
+		"app_id":            "2026000000000000",
+		"private_key":       privateKeyPEM,
+		"alipay_public_key": publicKeyPEM,
+		"gateway_url":       server.URL,
+		"notify_url":        "https://example.com/api/v1/payments/callback",
+		"sign_type":         "RSA2",
+	}
+
+	result, err := NewAlipayAdapter().(Capturer).QueryPayment(context.Background(), raw, "DJP20260628161408378842")
+	if err != nil {
+		t.Fatalf("QueryPayment() failed: %v", err)
+	}
+	if result.Status != constants.PaymentStatusSuccess {
+		t.Fatalf("status = %q", result.Status)
+	}
+	if result.ProviderRef != "2026062822000000000001" {
+		t.Fatalf("provider ref = %q", result.ProviderRef)
+	}
+	if result.Amount.String() != "0.01" {
+		t.Fatalf("amount = %s", result.Amount.String())
+	}
+}
+
 // buildAlipayTestKeyPair 为 wrapper 测试生成临时 RSA2 密钥对。
 // 等价于 alipay/alipay_test.go 的 buildTestConfig 中的密钥生成代码。
 func buildAlipayTestKeyPair(t *testing.T) (privateKeyPEM, publicKeyPEM string) {

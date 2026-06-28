@@ -31,6 +31,7 @@ func NewAlipayAdapter() Provider { return &alipayAdapter{} }
 // 编译期断言 alipayAdapter 实现了 Provider 和 CallbackVerifier。
 var (
 	_ Provider         = (*alipayAdapter)(nil)
+	_ Capturer         = (*alipayAdapter)(nil)
 	_ CallbackVerifier = (*alipayAdapter)(nil)
 )
 
@@ -133,6 +134,47 @@ func (a *alipayAdapter) CreatePayment(ctx context.Context, raw models.JSON, inpu
 		Payload:      payload,
 		AmountSent:   payAmount,
 		CurrencySent: payCurrency,
+	}, nil
+}
+
+// QueryPayment 主动查询支付宝订单状态（用于异步通知未到时的前端轮询兜底）。
+func (a *alipayAdapter) QueryPayment(ctx context.Context, raw models.JSON, providerRef string) (*QueryResult, error) {
+	cfg, err := a.parseConfig(raw, constants.PaymentInteractionQR)
+	if err != nil {
+		return nil, err
+	}
+	result, err := alipay.QueryPayment(ctx, cfg, providerRef)
+	if err != nil {
+		return nil, mapAlipayError(err)
+	}
+
+	status := constants.PaymentStatusPending
+	switch strings.TrimSpace(result.TradeStatus) {
+	case "TRADE_SUCCESS", "TRADE_FINISHED":
+		status = constants.PaymentStatusSuccess
+	case "TRADE_CLOSED":
+		status = constants.PaymentStatusFailed
+	}
+
+	amount := models.Money{}
+	if s := strings.TrimSpace(result.TotalAmount); s != "" {
+		if d, parseErr := decimal.NewFromString(s); parseErr == nil {
+			amount = models.NewMoneyFromDecimal(d)
+		}
+	}
+
+	var paidAt *time.Time
+	if t, parseErr := time.ParseInLocation("2006-01-02 15:04:05", strings.TrimSpace(result.PaidAtRaw), alipayLocation); parseErr == nil {
+		paidAt = &t
+	}
+
+	return &QueryResult{
+		ProviderRef: result.TradeNo,
+		Status:      status,
+		Amount:      amount,
+		Currency:    "CNY",
+		PaidAt:      paidAt,
+		Payload:     models.JSON(result.Raw),
 	}, nil
 }
 
